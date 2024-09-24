@@ -8,14 +8,14 @@ eMode_MaxDimensions = "Max Dimensions";
 /* [ Plate Size ] */
 // Select size calculation mode
 Mode = "Max Dimensions"; // [Row/Column Count, Max Dimensions]
-Rows = 10;
-Columns = 10;
+Rows = 10; // [ 1 : 100 ]
+Columns = 10; // [ 1 : 100 ]
 
 // Max plate width in millimeters. Only used when in "Max Dimensions" mode.
-Max_Plate_Width = 150;
+Max_Plate_Width = 250;
 
 // Max plate height in millimeters. Only used when in "Max Dimensions" mode.
-Max_Plate_Height = 150;
+Max_Plate_Height = 250;
 
 /* [ Stack Printing ] */
 // Number of plates to be generated for stack printing
@@ -24,7 +24,7 @@ Plate_Count = 3;
 /* [ Flat edges ] */
 Left = false;
 Top = false;
-Right = true;
+Right = false;
 Bottom = false;
 
 /* [Hidden] */
@@ -65,13 +65,13 @@ if (Mode == eMode_MaxDimensions)
 {
     assert( total_height < Max_Plate_Height, str("The total grid height of ", total_height, " exceeds maximum of ", Max_Plate_Height) );
     assert( total_width < Max_Plate_Width, str("The total grid width of ", total_width, " exceeds maximum of ", Max_Plate_Width) );
+}
 
-    // Enable to preview the print and used area limits
-    if ( $preview )
-    {
-        translate([0,-total_height,-0.5]) color("red") cube([total_width, total_height, 1]);
-        translate([0,-Max_Plate_Height,-0.6]) color("green") cube([Max_Plate_Width, Max_Plate_Height, 1]);
-    }
+// Enable to preview the print and used area limits
+if ( $preview )
+{
+    translate([0,-total_height,-0.5]) color("red") cube([total_width, total_height, 1]);
+    translate([0,-Max_Plate_Height,-0.6]) color("green") cube([Max_Plate_Width, Max_Plate_Height, 1]);
 }
 
 module wall(height, wall_thickness, length) {
