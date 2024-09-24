@@ -1,15 +1,21 @@
 // Original file:
 // https://www.printables.com/model/380870-customizable-honeycomb-storage-wall-openscad
 
+/* [Hidden] */
+eMode_RowColumnCount = "Row/Column Count";
+eMode_MaxDimensions = "Max Dimensions";
+
 /* [ Plate Size ] */
 // Select size calculation mode
-Mode = "Row/Column Count";// [Row/Column Count, Max Dimensions]
+Mode = "Max Dimensions"; // [Row/Column Count, Max Dimensions]
 Rows = 10;
 Columns = 10;
+
 // Max plate width in millimeters. Only used when in "Max Dimensions" mode.
-Max_Plate_Width = 100;
+Max_Plate_Width = 150;
+
 // Max plate height in millimeters. Only used when in "Max Dimensions" mode.
-Max_Plate_Height = 100;
+Max_Plate_Height = 150;
 
 /* [ Stack Printing ] */
 // Number of plates to be generated for stack printing
@@ -18,7 +24,7 @@ Plate_Count = 3;
 /* [ Flat edges ] */
 Left = false;
 Top = false;
-Right = false;
+Right = true;
 Bottom = false;
 
 /* [Hidden] */
@@ -38,18 +44,35 @@ edge_top = Top;
 edge_right = Right;
 edge_bottom = Bottom;
 
-// Calculated global variables
 
+// Calculated global variables
 outer_short_diagonal = inner_short_diagonal + wall_thickness * 2;
 outer_radius = outer_short_diagonal / sqrt(3);
 outer_diameter = 2 * outer_radius;
 half_outer_apothem = outer_radius / 2;
 
 // Grid dimensions
-max_grid_hexagons_x = Mode == "Row/Column Count" ? Columns : floor(Max_Plate_Height / outer_short_diagonal + (edge_top ? 0.5 : 0) + (edge_bottom ? 0.5 : 0));
-max_grid_hexagons_y = Mode == "Row/Column Count" ? Rows : floor(Max_Plate_Width / (outer_diameter - half_outer_apothem) + (edge_left ? 0.5 : 0) + (edge_right ? 0.5 : 0));
-total_width = max_grid_hexagons_x * (outer_diameter - half_outer_apothem) + half_outer_apothem;
-total_height = outer_short_diagonal * max_grid_hexagons_y;
+max_grid_hexagons_x = (Mode == eMode_RowColumnCount) ? Columns : floor(1 + (Max_Plate_Width-outer_diameter) / (outer_diameter - half_outer_apothem) + (edge_left ? 0.5 : 0) + (edge_right ? 0.5 : 0));
+assert( max_grid_hexagons_x >= 1, "Grid Column  (x-axis) count is < 1. Increase plate size limits.");
+max_grid_hexagons_y = (Mode == eMode_RowColumnCount) ? Rows : floor((Max_Plate_Height - outer_short_diagonal * ((max_grid_hexagons_x > 1 ? 0.5 : 0) - (edge_top ? 0.5 : 0) - (edge_bottom ? 0.5 : 0))) / outer_short_diagonal );
+assert( max_grid_hexagons_y >= 1, "Grid Row (y-axis) count is < 1. Increase plate size limits.");
+
+// Calculate total plate dimensions
+total_width = (max_grid_hexagons_x * outer_diameter) - ((max_grid_hexagons_x-1) * half_outer_apothem) - (((edge_left ? 0.5 : 0) + (edge_right ? 0.5 : 0)) * outer_diameter);
+total_height = (max_grid_hexagons_y + (max_grid_hexagons_x>1 ? 0.5: 0 )) * outer_short_diagonal - (((edge_top ? 0.5 : 0) + (edge_bottom ? 0.5 : 0)) * outer_short_diagonal);
+
+if (Mode == eMode_MaxDimensions)
+{
+    assert( total_height < Max_Plate_Height, str("The total grid height of ", total_height, " exceeds maximum of ", Max_Plate_Height) );
+    assert( total_width < Max_Plate_Width, str("The total grid width of ", total_width, " exceeds maximum of ", Max_Plate_Width) );
+
+    // Enable to preview the print and used area limits
+    if ( $preview )
+    {
+        translate([0,-total_height,-0.5]) color("red") cube([total_width, total_height, 1]);
+        translate([0,-Max_Plate_Height,-0.6]) color("green") cube([Max_Plate_Width, Max_Plate_Height, 1]);
+    }
+}
 
 module wall(height, wall_thickness, length) {
   wall_height = height;
@@ -101,17 +124,17 @@ module cell(height, radius, wall_thickness, inner_short_diagonal, left, top, rig
             wall(depth, wall_thickness, outer_diameter);
     }
     if (left)
-      translate([-outer_diameter / 2, -outer_short_diagonal, 0])
-        cube([outer_diameter / 2, 2 * outer_short_diagonal, depth]);
+      translate([-outer_diameter / 2, -outer_short_diagonal, -0.01])
+        cube([outer_diameter / 2, 2 * outer_short_diagonal, depth+0.02]);
     if (top)
-      translate([-outer_diameter / 2, 0, 0])
-        cube([outer_diameter, outer_short_diagonal, depth]);
+      translate([-outer_diameter / 2, 0, -0.01])
+        cube([outer_diameter, outer_short_diagonal, depth+0.02]);
     if (right)
-      translate([0, -outer_short_diagonal, 0])
-        cube([outer_diameter / 2, 2 * outer_short_diagonal, depth]);
+      translate([0, -outer_short_diagonal, -0.01])
+        cube([outer_diameter / 2, 2 * outer_short_diagonal, depth+0.02]);
     if (bottom)
-      translate([-outer_diameter / 2, -outer_short_diagonal, 0])
-        cube([outer_diameter, outer_short_diagonal, depth]);
+      translate([-outer_diameter / 2, -outer_short_diagonal, -0.01])
+        cube([outer_diameter, outer_short_diagonal, depth+0.02]);
   }
 }
 
@@ -120,12 +143,12 @@ module plate(height, inner_short_diagonal, wall_width) {
   for(col = [0:(max_grid_hexagons_x - 1)]) {
     for(row = [0:(max_grid_hexagons_y - 1)]) {
       x = (outer_diameter - half_outer_apothem) * col;
-      y = -(outer_short_diagonal) * (row + (col % 2) / 2);
+      y = -(outer_short_diagonal) * (row + (col % 2) / 2) + (edge_top ? outer_short_diagonal / 2 : 0);
 
       left = edge_left && col == 0;
       top = edge_top && row == 0 && col % 2 == 0;
       right = edge_right && col == max_grid_hexagons_x - 1;
-      bottom = edge_bottom && (row + 1) == max_grid_hexagons_y && (outer_short_diagonal - y) > total_height + 0.001 && (outer_short_diagonal - y) / 2 <= total_height;
+      bottom = edge_bottom && (row + 1) == max_grid_hexagons_y && (outer_short_diagonal - y) > total_height + 0.01 && (outer_short_diagonal - y) / 2 <= total_height;
 
       translate([x, y, 0])
         cell(height, outer_radius, wall_width, inner_short_diagonal, left, top, right, bottom);
@@ -133,8 +156,7 @@ module plate(height, inner_short_diagonal, wall_width) {
   }
 }
 
-translate([edge_left ? 0 : outer_radius, edge_top ? 0 : -outer_short_diagonal / 2, 0])
+translate([edge_left ? 0 : outer_radius, -outer_short_diagonal / 2, 0])
   for(i = [0:max(Plate_Count - 1, 0)]) {
-    translate([0, 0, i * (depth + stack_printing_gap)])
-      plate(depth, inner_short_diagonal, wall_thickness);
+    translate([0, 0, i * (depth + stack_printing_gap)])       plate(depth, inner_short_diagonal, wall_thickness);
   }
