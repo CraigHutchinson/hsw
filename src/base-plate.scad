@@ -12,10 +12,10 @@ Rows = 10; // [ 1 : 100 ]
 Columns = 10; // [ 1 : 100 ]
 
 // Max plate width in millimeters. Only used when in "Max Dimensions" mode.
-Max_Plate_Width = 250;
+Max_Plate_Width = 256;
 
 // Max plate height in millimeters. Only used when in "Max Dimensions" mode.
-Max_Plate_Height = 250;
+Max_Plate_Height = 256;
 
 /* [ Stack Printing ] */
 // Number of plates to be generated for stack printing
@@ -37,6 +37,7 @@ inner_short_diagonal = 20;
 wall_thickness = 1.8;
 // Gap so the plates don't bind to one another
 stack_printing_gap = 0.2;
+//
 
 // Edges
 edge_left = Left;
@@ -74,7 +75,7 @@ if ( $preview )
     translate([0,-Max_Plate_Height,-0.6]) color("green") cube([Max_Plate_Width, Max_Plate_Height, 1]);
 }
 
-module wall(height, wall_thickness, length) {
+module wall(height, wall_thickness, length, endBevel = false) {
   wall_height = height;
   back_fillet_start = wall_height - 5.1;
   back_fillet_end = 2;
@@ -83,6 +84,8 @@ module wall(height, wall_thickness, length) {
   front_fillet_size = 0.5;
 
   rotate([90, 0, 0])
+    difference()
+    {
     linear_extrude(length)
       polygon([
         [0, 0], 
@@ -93,6 +96,15 @@ module wall(height, wall_thickness, length) {
         [wall_top_thickness, back_fillet_end], 
         [wall_top_thickness, 0]
       ]);
+        if ( endBevel == true)
+        {
+            translate([0,-0.01,0])
+            color("blue")
+            rotate([0,60,0]) cube([5,wall_height+0.02,5]);
+            color("blue")
+            translate([0,-0.01,length]) rotate([0,30,0]) cube([5,wall_height+0.02,5]);
+        }
+    };
 }
 
 module hex(height, radius, wall_thickness, inner_short_diagonal) {
@@ -111,9 +123,7 @@ module cell(height, radius, wall_thickness, inner_short_diagonal, left, top, rig
         translate([0, outer_short_diagonal / 2, 0])
           wall(depth, wall_thickness, outer_short_diagonal);
       if (top)
-        translate([outer_diameter / 2, 0, 0])
-          rotate([0, 0, -90])
-            wall(depth, wall_thickness, outer_diameter);
+        translate([outer_diameter / 2, 0, 0]) rotate([0, 0, -90]) wall(depth, wall_thickness, outer_diameter, true);
       if (right)
         translate([0, -outer_short_diagonal / 2, 0])
           rotate([0, 0, 180])
@@ -127,8 +137,7 @@ module cell(height, radius, wall_thickness, inner_short_diagonal, left, top, rig
       translate([-outer_diameter / 2, -outer_short_diagonal, -0.01])
         cube([outer_diameter / 2, 2 * outer_short_diagonal, depth+0.02]);
     if (top)
-      translate([-outer_diameter / 2, 0, -0.01])
-        cube([outer_diameter, outer_short_diagonal, depth+0.02]);
+      translate([-outer_diameter / 2, 0, -0.01]) cube([outer_diameter, outer_short_diagonal, depth+0.02]);
     if (right)
       translate([0, -outer_short_diagonal, -0.01])
         cube([outer_diameter / 2, 2 * outer_short_diagonal, depth+0.02]);
