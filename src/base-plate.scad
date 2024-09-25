@@ -23,9 +23,9 @@ Plate_Count = 3;
 
 /* [ Flat edges ] */
 Left = false;
-Top = false;
+Top = true;
 Right = false;
-Bottom = false;
+Bottom = true;
 
 /* [Hidden] */
 
@@ -99,9 +99,7 @@ module wall(height, wall_thickness, length, endBevel = false) {
         if ( endBevel == true)
         {
             translate([0,-0.01,0])
-            color("blue")
             rotate([0,60,0]) cube([5,wall_height+0.02,5]);
-            color("blue")
             translate([0,-0.01,length]) rotate([0,30,0]) cube([5,wall_height+0.02,5]);
         }
     };
@@ -116,9 +114,22 @@ module hex(height, radius, wall_thickness, inner_short_diagonal) {
 }
 
 module cell(height, radius, wall_thickness, inner_short_diagonal, left, top, right, bottom) {
-  difference() {
     union() {
-      hex(height, radius, wall_thickness, inner_short_diagonal);
+      difference() {
+          hex(height, radius, wall_thickness, inner_short_diagonal);
+        if (left)
+          translate([-outer_diameter / 2, -outer_short_diagonal, -0.01])
+            cube([outer_diameter / 2, 2 * outer_short_diagonal, depth+0.02]);
+        if (top)
+          translate([-outer_diameter / 2, 0, -0.01]) cube([outer_diameter, outer_short_diagonal, depth+0.02]);
+        if (right)
+          translate([0, -outer_short_diagonal, -0.01])
+            cube([outer_diameter / 2, 2 * outer_short_diagonal, depth+0.02]);
+        if (bottom)
+          translate([-outer_diameter / 2, -outer_short_diagonal, -0.01])
+            cube([outer_diameter, outer_short_diagonal, depth+0.02]);
+      }
+      //Edges
       if (left)
         translate([0, outer_short_diagonal / 2, 0])
           wall(depth, wall_thickness, outer_short_diagonal);
@@ -133,18 +144,6 @@ module cell(height, radius, wall_thickness, inner_short_diagonal, left, top, rig
           rotate([0, 0, 90])
             wall(depth, wall_thickness, outer_diameter);
     }
-    if (left)
-      translate([-outer_diameter / 2, -outer_short_diagonal, -0.01])
-        cube([outer_diameter / 2, 2 * outer_short_diagonal, depth+0.02]);
-    if (top)
-      translate([-outer_diameter / 2, 0, -0.01]) cube([outer_diameter, outer_short_diagonal, depth+0.02]);
-    if (right)
-      translate([0, -outer_short_diagonal, -0.01])
-        cube([outer_diameter / 2, 2 * outer_short_diagonal, depth+0.02]);
-    if (bottom)
-      translate([-outer_diameter / 2, -outer_short_diagonal, -0.01])
-        cube([outer_diameter, outer_short_diagonal, depth+0.02]);
-  }
 }
 
 
